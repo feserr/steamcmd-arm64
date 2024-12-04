@@ -23,6 +23,56 @@ RUN set -x \
 
 ############################################################
 
+FROM arm64v8/python:slim-bookworm as box64_rpi3
+
+ENV DEBIAN_FRONTEND noninteractive
+
+# Set SHELL option explicitly
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# hadolint ignore=DL3008
+RUN set -x \
+	&& apt-get update \
+	&& apt-get install -y --no-install-recommends --no-install-suggests \
+        git \
+		ca-certificates \
+        build-essential \
+        cmake \
+		mold \
+	&& git clone https://github.com/ptitSeb/box64.git \
+    && mkdir /box64/build \
+	&& cd /box64/build \
+	&& cmake .. -D RPI3ARM64=1 -D CMAKE_BUILD_TYPE=RelWithDebInfo -D WITH_MOLD=1 \
+	&& mold -run make -j$(nproc) \
+	&& make install DESTDIR=/tmp/install
+
+############################################################
+
+FROM arm64v8/python:slim-bookworm as box64_rpi4
+
+ENV DEBIAN_FRONTEND noninteractive
+
+# Set SHELL option explicitly
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# hadolint ignore=DL3008
+RUN set -x \
+	&& apt-get update \
+	&& apt-get install -y --no-install-recommends --no-install-suggests \
+        git \
+		ca-certificates \
+        build-essential \
+        cmake \
+		mold \
+	&& git clone https://github.com/ptitSeb/box64.git \
+    && mkdir /box64/build \
+	&& cd /box64/build \
+	&& cmake .. -D RPI4ARM64=1 -D CMAKE_BUILD_TYPE=RelWithDebInfo -D WITH_MOLD=1 \
+	&& mold -run make -j$(nproc) \
+	&& make install DESTDIR=/tmp/install
+
+############################################################
+
 FROM arm64v8/python:slim-bookworm as box64_rpi5
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -92,6 +142,8 @@ ENV DEBUGGER "/usr/local/bin/box86"
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 COPY --from=box64_m1 /tmp/install/usr/local/bin/box64 /usr/local/bin/box64-m1
+COPY --from=box64_rpi3 /tmp/install/usr/local/bin/box64 /usr/local/bin/box64-rpi3
+COPY --from=box64_rpi4 /tmp/install/usr/local/bin/box64 /usr/local/bin/box64-rpi4
 COPY --from=box64_rpi5 /tmp/install/usr/local/bin/box64 /usr/local/bin/box64-rpi5
 COPY --from=box64_adlink /tmp/install/usr/local/bin/box64 /usr/local/bin/box64-adlink
 
@@ -129,7 +181,7 @@ RUN set -x \
 	&& apt-get download -y \
 		box86-generic-arm \
 	&& dpkg-deb -R *.deb box86_tmp \
-	&& rm box86_tmp/usr/lib/i386-linux-gnu/libstdc++.so.6 \
+	&& rm -f box86_tmp/usr/lib/i386-linux-gnu/libstdc++.so.6 \
 	&& dpkg-deb -b box86_tmp new_box86.deb \
 	&& dpkg -i new_box86.deb \
 	&& rm -rf *.deb \

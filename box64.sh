@@ -8,6 +8,12 @@ export BOX64_ROLLING_LOG=1
 
 # Define the path to binaries based on the ARM64_DEVICE environment variable
 case $ARM64_DEVICE in
+    rpi3)
+        BINARY_PATH="/usr/local/bin/box64-rpi3"
+        ;;
+    rpi4)
+        BINARY_PATH="/usr/local/bin/box64-rpi4"
+        ;;
     rpi5)
         BINARY_PATH="/usr/local/bin/box64-rpi5"
         ;;
